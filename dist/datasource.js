@@ -25,6 +25,31 @@ var metrics = [{
     value: 'time'
 }];
 
+var durations = [{
+    name: 'seconds',
+    count: 60
+}, {
+    name: 'minutes',
+    count: 60
+}, {
+    name: 'hours',
+    count: 24
+}, {
+    name: 'days'
+}];
+
+function formatDuration(time) {
+    var idx = 0;
+    var cur = durations[idx];
+
+    while (cur.count && time > cur.count) {
+        time = time / cur.count;
+        cur = durations[++idx];
+    }
+
+    return Math.floor(time) + ' ' + cur.name;
+}
+
 var Pingdom = exports.Pingdom = function () {
     function Pingdom(instanceSettings, $q, backendSrv, templateSrv) {
         _classCallCheck(this, Pingdom);
@@ -95,7 +120,7 @@ var Pingdom = exports.Pingdom = function () {
             var annotation = options.annotation,
                 range = options.range;
             var checks = annotation.checks,
-                status = annotation.status;
+                state = annotation.state;
 
 
             var from = range.from.unix();
@@ -112,13 +137,13 @@ var Pingdom = exports.Pingdom = function () {
                     var check = checks[idx];
 
                     return results.filter(function (r) {
-                        return !status || r.status == status;
+                        return !state || r.status == state;
                     }).map(function (r) {
                         return {
                             annotation: annotation,
-                            title: check.name + ' ' + r.status.toUpperCase(),
+                            title: check.name + ' (' + check.hostname + ')',
                             time: r.timefrom * 1000,
-                            text: check.name + ' (' + check.hostname + ') changed state to ' + r.status.toUpperCase(),
+                            text: '\nState: ' + r.status.toUpperCase() + '\nDuration: ' + formatDuration(r.timeto - r.timefrom),
                             tags: [check.name, check.type, r.status]
                         };
                     });

@@ -15,6 +15,31 @@ const metrics = [{
     value: 'time'
 }];
 
+const durations = [{
+    name: 'seconds',
+    count: 60
+}, {
+    name: 'minutes',
+    count: 60
+}, {
+    name: 'hours',
+    count: 24
+}, {
+    name: 'days'
+}];
+
+function formatDuration(time) {
+    let idx = 0;
+    let cur = durations[idx];
+
+    while (cur.count && time > cur.count) {
+        time = time / cur.count;
+        cur = durations[++idx];
+    }
+
+    return Math.floor(time) + ' ' + cur.name;
+}
+
 export
 class Pingdom {
 
@@ -71,7 +96,7 @@ class Pingdom {
 
     annotationQuery(options){
         const { annotation, range } = options;
-        const { checks, status } = annotation;
+        const { checks, state } = annotation;
 
         const from = range.from.unix();
         const to = range.to.unix();
@@ -87,12 +112,12 @@ class Pingdom {
                 const check = checks[idx];
 
                 return results
-                    .filter(r => !status || r.status == status)
+                    .filter(r => !state || r.status == state)
                     .map(r => ({
                         annotation,
-                        title: check.name + ' ' + r.status.toUpperCase(),
+                        title: `${check.name} (${check.hostname})`,
                         time: r.timefrom * 1000,
-                        text: `${check.name} (${check.hostname}) changed state to ${r.status.toUpperCase()}`,
+                        text: `\nState: ${r.status.toUpperCase()}\nDuration: ${formatDuration(r.timeto - r.timefrom)}`,
                         tags: [check.name, check.type, r.status]
                     }));
             }))
