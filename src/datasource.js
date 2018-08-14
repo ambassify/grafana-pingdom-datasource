@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 const APP_KEY = 'kr1678azp3l9pceh0hysjnvsdmnp0exb';
 const PINGDOM_MAX_LIMIT = 1000;
 const PINGDOM_MAX_OFFSET = 43200;
@@ -61,21 +59,35 @@ class Pingdom {
 
     query(options){
         const { targets } = options;
+        const requests = [];
 
-        return Promise.all(targets.map(target => {
-            const { alias, check, checkName, metric, refId } = target;
+        targets.forEach(target => {
+            const checks = this.getChecks(target.check, options)
+                .filter(check => !!check)
+                .map(check => Object.assign({}, target, { check }));
 
-            return this.getCheckResults(target, options)
-                .then(results => ({
-                    target: alias || checkName || check,
-                    refId,
-                    datapoints: results.map(r => ([
-                        this.getMetric(r, metric),
-                        (r.time || r.starttime) * 1000
-                    ]))
-                }));
-        }))
-            .then(data => ({ data }));
+            requests.push(...checks);
+        });
+
+        return Promise.all(requests.map(target => {
+            let { checkName } = target;
+            const { alias, check, metric, refId } = target;
+
+            if (/^\$/.test(checkName))
+                checkName = null;
+
+            return Promise.all([
+                this.getCheckResults(check, options),
+                this.getCheckInfo(check)
+            ]).then(([ results, checkInfo ]) => ({
+                target: alias || checkName || checkInfo.name || check,
+                refId,
+                datapoints: results.map(r => ([
+                    this.getMetric(r, metric),
+                    (r.time || r.starttime) * 1000
+                ]))
+            }));
+        })).then(data => ({ data }));
     }
 
     testDatasource() {
@@ -151,6 +163,11 @@ class Pingdom {
         return Promise.resolve(found);
     }
 
+    getCheckInfo(id) {
+        return this.checkFindQuery()
+            .then(checks => checks.filter(c => c.id == id).pop());
+    }
+
     checkFindQuery(search){
         if (!this._checks) {
             this._checks = this.doRequest({ url: '/checks' })
@@ -163,6 +180,42 @@ class Pingdom {
 
         return this._checks
             .then(checks => checks.filter(c => c.name.indexOf(search) > -1));
+    }
+
+    replaceVariable(val, query) {
+        const { scopedVars } = query;
+        const tpl = this.templateSrv;
+
+        if (!/^\$/.test(val || ''))
+            return val;
+
+        const name = tpl.getVariableName(val);
+        const variable = tpl.index[name];
+
+        if (scopedVars[name])
+            return scopedVars[name].value;
+
+        const value = variable.current.value;
+
+        if (tpl.isAllValue(value))
+            return tpl.getAllValue(variable);
+
+        if (Array.isArray(value) && value.length > 1)
+            return value;
+
+        return this.templateSrv.replace(val, scopedVars);
+    }
+
+    getChecks(check, query) {
+        if (!check)
+            return [];
+
+        check = this.replaceVariable(check, query);
+
+        if (!Array.isArray(check))
+            check = [ check ];
+
+        return check.map(c => (/\d+$/.exec(c + '') || [])[0]);
     }
 
     getMetric(row, metricName) {
@@ -185,17 +238,11 @@ class Pingdom {
         return 0;
     }
 
-    getCheckResults(target, query, offset = 0) {
-        let { check } = target;
-        const { range, intervalMs, scopedVars } = query;
+    getCheckResults(check, query, offset = 0) {
+        const { range, intervalMs } = query;
         const from = range.from.unix();
         const to = range.to.unix();
         const period = (to - from) * 1000;
-
-        if (/^\$/.test(check || '')) {
-            check = this.templateSrv.replace(check, scopedVars);
-            check = (/\d+$/.exec(check) || [])[0];
-        }
 
         if (!check)
             return Promise.resolve([]);
@@ -248,7 +295,7 @@ class Pingdom {
                 if (results.length < PINGDOM_MAX_LIMIT || offset + PINGDOM_MAX_LIMIT > PINGDOM_MAX_OFFSET)
                     return results;
 
-                return this.getCheckResults(target, query, offset + PINGDOM_MAX_LIMIT)
+                return this.getCheckResults(check, query, offset + PINGDOM_MAX_LIMIT)
                     .then(res => results.concat(res));
             })
             .catch(this.handleError);
