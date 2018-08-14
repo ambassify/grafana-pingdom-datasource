@@ -1,0 +1,34 @@
+<div class="gf-form-group">
+  <div class="gf-form-block">
+    <div class="gf-form">
+      <label class="gf-form-label query-keyword width-9">Show states</label>
+        <div class="gf-form">
+            <div class="gf-form-select-wrapper max-width-9">
+                <select class="input-small gf-form-input"
+                    ng-model="ctrl.annotation.status"
+                    ng-options="i.id as i.name for i in ctrl.states">
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="gf-form">
+      <label class="gf-form-label query-keyword width-9">Select checks</label>
+        <div class="gf-form">
+            <div class="gf-form-select-wrapper max-width-9">
+                <select class="input-small gf-form-input"
+                    ng-model="ctrl.check"
+                    ng-options="i.name for i in ctrl.selectable track by i.id"
+                    ng-change="ctrl.onCheckChange()"></select>
+            </div>
+        </div>
+    </div>
+    <div class="gf-form" ng-repeat="check in ctrl.annotation.checks" ng-if="ctrl.annotation.checks.length > 0">
+        <label class="gf-form-label">
+            <a class="btn btn-inverse btn-small" ng-click="ctrl.onRemove(check)">
+                <i class="fa fa-trash"></i>
+            </a>
+        </label>
+        <label class="gf-form-label width-20">{{ check.name }}</label>
+    </div>
+  </div>
+</div>

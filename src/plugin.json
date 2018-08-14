@@ -1,0 +1,40 @@
+{
+    "name": "Pingdom",
+    "id": "ambassify-pingdom-datasource",
+    "type": "datasource",
+
+    "partials": {
+        "config": "public/app/plugins/datasource/pingdom/partials/config.html"
+    },
+
+    "metrics": true,
+    "annotations": true,
+
+    "info": {
+        "description": "Pingdom as Datasource",
+        "author": {
+            "name": "Ambassify",
+            "url": "https://www.ambassify.com"
+        },
+        "logos": {
+            "small": "img/pingdom.png",
+            "large": "img/pingdom.png"
+        },
+        "links": [
+            {"name": "GitHub", "url": "https://github.com/grafana/simple-json-datasource"},
+            {"name": "MIT License", "url": "https://github.com/grafana/simple-json-datasource/blob/master/LICENSE"}
+        ],
+        "version": "1.0.0",
+        "updated": "2018-06-20"
+    },
+
+    "routes": [{
+        "path": "pingdom",
+        "url": "https://api.pingdom.com/api/2.1"
+    }],
+
+    "dependencies": {
+        "grafanaVersion": "5.x.x",
+        "plugins": [ ]
+    }
+}
