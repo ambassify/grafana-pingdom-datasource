@@ -4,7 +4,9 @@
   "description": "Grafana Pingdom Datasource",
   "main": "dist/index.js",
   "scripts": {
-    "build": "babel --copy-files -d dist src"
+    "build": "babel --copy-files -d dist src",
+    "test": "npm -s run test:lint",
+    "test:lint": "eslint src"
   },
   "author": "Ambassify <dev@ambassify.com>",
   "license": "MIT",

@@ -32,7 +32,7 @@ class Pingdom {
     }
 
     query(options){
-        const { targets, range } = options;
+        const { targets } = options;
 
         return Promise.all(targets.map(target => {
             const { alias, check, checkName, metric, refId } = target;
@@ -47,26 +47,26 @@ class Pingdom {
                     ]))
                 }));
         }))
-        .then(data => ({ data }));
+            .then(data => ({ data }));
     }
 
     testDatasource() {
         return this.doRequest({
-            url: "/settings"
+            url: '/settings'
         })
-        .then(resp => {
-            if (resp.status < 200 || resp.status >= 400)
-                throw new Error(`${resp.status} ${resp.statusMessage}`);
+            .then(resp => {
+                if (resp.status < 200 || resp.status >= 400)
+                    throw new Error(`${resp.status} ${resp.statusMessage}`);
 
-            return {
-                status: 'success',
-                message: `Connected to ${resp.data.settings.description || resp.data.settings.company}`,
-                title: 'Success'
-            };
-        })
-        .catch(err => {
-            return { status: 'failure', message: 'Connection failed', title: 'Error' }
-        });
+                return {
+                    status: 'success',
+                    message: `Connected to ${resp.data.settings.description || resp.data.settings.company}`,
+                    title: 'Success'
+                };
+            })
+            .catch(() => {
+                return { status: 'failure', message: 'Connection failed', title: 'Error' };
+            });
     }
 
     annotationQuery(options){
@@ -80,23 +80,23 @@ class Pingdom {
             return this.doRequest({
                 url: `/summary.outage/${check.id}?from=${from}&to=${to}`
             })
-            .then(res => res.data.summary.states)
-            .catch(this.handleError);
+                .then(res => res.data.summary.states)
+                .catch(this.handleError);
         }))
-        .then(responses => responses.map((results, idx) => {
-            const check = checks[idx];
+            .then(responses => responses.map((results, idx) => {
+                const check = checks[idx];
 
-            return results
-                .filter(r => !status || r.status == status)
-                .map(r => ({
-                    annotation,
-                    title: check.name + ' ' + r.status.toUpperCase(),
-                    time: r.timefrom * 1000,
-                    text: `${check.name} (${check.hostname}) changed state to ${r.status.toUpperCase()}`,
-                    tags: [check.name, check.type, r.status]
-                }));
-        }))
-        .then(results => results.reduce((out, r) => out.concat(r)))
+                return results
+                    .filter(r => !status || r.status == status)
+                    .map(r => ({
+                        annotation,
+                        title: check.name + ' ' + r.status.toUpperCase(),
+                        time: r.timefrom * 1000,
+                        text: `${check.name} (${check.hostname}) changed state to ${r.status.toUpperCase()}`,
+                        tags: [check.name, check.type, r.status]
+                    }));
+            }))
+            .then(results => results.reduce((out, r) => out.concat(r)));
     }
 
     metricFindQuery(search){
@@ -180,7 +180,7 @@ class Pingdom {
         if (intervalMs >= WEEK_MS)
             resolution = 'week';
 
-        let url = `/${endpoint}/${check}?from=${from}&to=${to}`
+        let url = `/${endpoint}/${check}?from=${from}&to=${to}`;
 
         if (resolution)
             url += `&resolution=${resolution}&includeuptime=true`;
@@ -189,33 +189,33 @@ class Pingdom {
 
 
         return this.doRequest({ url })
-        .then(res => {
-            if (res.status !== 200)
-                throw new Error(res.data.error.errormessage || res.statusText);
+            .then(res => {
+                if (res.status !== 200)
+                    throw new Error(res.data.error.errormessage || res.statusText);
 
-            const { summary } = res.data;
+                const { summary } = res.data;
 
-            const results = res.data.results ||
+                const results = res.data.results ||
                 summary.hours ||
                 summary.days ||
                 summary.weeks;
 
-            // Summary endpoint does not allow paging
-            if (resolution)
-                return results;
+                // Summary endpoint does not allow paging
+                if (resolution)
+                    return results;
 
-            if (results.length < PINGDOM_MAX_LIMIT || offset + PINGDOM_MAX_LIMIT > PINGDOM_MAX_OFFSET)
-                return results;
+                if (results.length < PINGDOM_MAX_LIMIT || offset + PINGDOM_MAX_LIMIT > PINGDOM_MAX_OFFSET)
+                    return results;
 
-            return this.getCheckResults(target, query, offset + PINGDOM_MAX_LIMIT)
-                .then(res => results.concat(res));
-        })
-        .catch(this.handleError);
+                return this.getCheckResults(target, query, offset + PINGDOM_MAX_LIMIT)
+                    .then(res => results.concat(res));
+            })
+            .catch(this.handleError);
     }
 
     handleError(res) {
         if (!res.data && !res.statusText)
-            throw err;
+            throw res;
 
         if (!res.data.error)
             throw new Error(res.statusText);

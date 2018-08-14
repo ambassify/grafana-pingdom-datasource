@@ -1,5 +1,3 @@
-import {QueryCtrl} from 'app/plugins/sdk';
-
 function sortChecks(a, b) {
     if (a.name < b.name)
         return -1;

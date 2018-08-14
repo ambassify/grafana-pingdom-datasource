@@ -7,9 +7,9 @@ class PingdomQueryOptionsCtrl {}
 PingdomQueryOptionsCtrl.templateUrl = 'partials/query.options.html';
 
 export {
-  Pingdom as Datasource,
-  PingdomQueryCtrl as QueryCtrl,
-  PingdomConfigCtrl as ConfigCtrl,
-  PingdomQueryOptionsCtrl as QueryOptionsCtrl,
-  PingdomAnnotationsQueryCtrl as AnnotationsQueryCtrl
+    Pingdom as Datasource,
+    PingdomQueryCtrl as QueryCtrl,
+    PingdomConfigCtrl as ConfigCtrl,
+    PingdomQueryOptionsCtrl as QueryOptionsCtrl,
+    PingdomAnnotationsQueryCtrl as AnnotationsQueryCtrl
 };

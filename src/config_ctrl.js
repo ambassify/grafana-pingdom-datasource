@@ -1,6 +1,6 @@
 export class PingdomConfigCtrl {
 
-    constructor($scope) {
+    constructor() {
         this.current.basicAuth = true;
     }
 

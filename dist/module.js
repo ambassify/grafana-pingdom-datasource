@@ -1,7 +1,7 @@
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
-  value: true
+    value: true
 });
 exports.AnnotationsQueryCtrl = exports.QueryOptionsCtrl = exports.ConfigCtrl = exports.QueryCtrl = exports.Datasource = undefined;
 
@@ -16,7 +16,7 @@ var _annotations_ctrl = require('./annotations_ctrl');
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PingdomQueryOptionsCtrl = function PingdomQueryOptionsCtrl() {
-  _classCallCheck(this, PingdomQueryOptionsCtrl);
+    _classCallCheck(this, PingdomQueryOptionsCtrl);
 };
 
 PingdomQueryOptionsCtrl.templateUrl = 'partials/query.options.html';

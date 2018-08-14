@@ -46,8 +46,7 @@ var Pingdom = exports.Pingdom = function () {
         value: function query(options) {
             var _this = this;
 
-            var targets = options.targets,
-                range = options.range;
+            var targets = options.targets;
 
 
             return Promise.all(targets.map(function (target) {
@@ -75,7 +74,7 @@ var Pingdom = exports.Pingdom = function () {
         key: 'testDatasource',
         value: function testDatasource() {
             return this.doRequest({
-                url: "/settings"
+                url: '/settings'
             }).then(function (resp) {
                 if (resp.status < 200 || resp.status >= 400) throw new Error(resp.status + ' ' + resp.statusMessage);
 
@@ -84,7 +83,7 @@ var Pingdom = exports.Pingdom = function () {
                     message: 'Connected to ' + (resp.data.settings.description || resp.data.settings.company),
                     title: 'Success'
                 };
-            }).catch(function (err) {
+            }).catch(function () {
                 return { status: 'failure', message: 'Connection failed', title: 'Error' };
             });
         }
@@ -242,7 +241,7 @@ var Pingdom = exports.Pingdom = function () {
     }, {
         key: 'handleError',
         value: function handleError(res) {
-            if (!res.data && !res.statusText) throw err;
+            if (!res.data && !res.statusText) throw res;
 
             if (!res.data.error) throw new Error(res.statusText);
 
