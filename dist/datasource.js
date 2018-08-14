@@ -3,8 +3,15 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.Pingdom = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _lodash = require('lodash');
+
+var _lodash2 = _interopRequireDefault(_lodash);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -60,6 +67,7 @@ var Pingdom = exports.Pingdom = function () {
         this.q = $q;
         this.backendSrv = backendSrv;
         this.templateSrv = templateSrv;
+        this.requestCache = {};
 
         this.headers = {
             'App-Key': APP_KEY
@@ -157,6 +165,17 @@ var Pingdom = exports.Pingdom = function () {
     }, {
         key: 'metricFindQuery',
         value: function metricFindQuery(search) {
+            if (search == 'checks()') {
+                return this.checkFindQuery().then(function (checks) {
+                    return checks.map(function (c) {
+                        return {
+                            text: c.name,
+                            value: c.name + ' - ' + c.id
+                        };
+                    });
+                });
+            }
+
             search = search.toLowerCase();
 
             if (search.length < 1) return Promise.resolve(metrics.slice());
@@ -216,11 +235,17 @@ var Pingdom = exports.Pingdom = function () {
             var offset = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
             var check = target.check;
             var range = query.range,
-                intervalMs = query.intervalMs;
+                intervalMs = query.intervalMs,
+                scopedVars = query.scopedVars;
 
             var from = range.from.unix();
             var to = range.to.unix();
             var period = (to - from) * 1000;
+
+            if (/^\$/.test(check || '')) {
+                check = this.templateSrv.replace(check, scopedVars);
+                check = (/\d+$/.exec(check) || [])[0];
+            }
 
             if (!check) return Promise.resolve([]);
 
@@ -275,11 +300,24 @@ var Pingdom = exports.Pingdom = function () {
     }, {
         key: 'doRequest',
         value: function doRequest(options) {
+            var _this4 = this;
+
+            var cacheKey = options.url.replace(/((from|to)=\d+)\d\d(&?)/gi, '$1$3');
+
+            if (this.requestCache[cacheKey]) return this.requestCache[cacheKey];
+
             options.headers = Object.assign({}, this.headers, options.headers);
             options.method = options.method || 'GET';
             options.url = this.url + '/pingdom' + options.url;
 
-            return this.backendSrv.datasourceRequest(options);
+            var promise = this.backendSrv.datasourceRequest(options);
+            this.requestCache[cacheKey] = promise;
+
+            setTimeout(function () {
+                delete _this4.requestCache[cacheKey];
+            }, 60000);
+
+            return promise;
         }
     }]);
 

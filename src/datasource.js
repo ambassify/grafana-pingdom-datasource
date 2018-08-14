@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 const APP_KEY = 'kr1678azp3l9pceh0hysjnvsdmnp0exb';
 const PINGDOM_MAX_LIMIT = 1000;
 const PINGDOM_MAX_OFFSET = 43200;
@@ -50,6 +52,7 @@ class Pingdom {
         this.q = $q;
         this.backendSrv = backendSrv;
         this.templateSrv = templateSrv;
+        this.requestCache = {};
 
         this.headers = {
             'App-Key': APP_KEY
@@ -125,6 +128,14 @@ class Pingdom {
     }
 
     metricFindQuery(search){
+        if (search == 'checks()') {
+            return this.checkFindQuery()
+                .then(checks => checks.map(c => ({
+                    text: c.name,
+                    value: c.name + ' - ' + c.id
+                })));
+        }
+
         search = search.toLowerCase();
 
         if (search.length < 1)
@@ -175,11 +186,16 @@ class Pingdom {
     }
 
     getCheckResults(target, query, offset = 0) {
-        const { check } = target;
-        const { range, intervalMs } = query;
+        let { check } = target;
+        const { range, intervalMs, scopedVars } = query;
         const from = range.from.unix();
         const to = range.to.unix();
         const period = (to - from) * 1000;
+
+        if (/^\$/.test(check || '')) {
+            check = this.templateSrv.replace(check, scopedVars);
+            check = (/\d+$/.exec(check) || [])[0];
+        }
 
         if (!check)
             return Promise.resolve([]);
@@ -249,10 +265,22 @@ class Pingdom {
     }
 
     doRequest(options) {
+        const cacheKey = options.url.replace(/((from|to)=\d+)\d\d(&?)/gi, '$1$3');
+
+        if (this.requestCache[cacheKey])
+            return this.requestCache[cacheKey];
+
         options.headers = Object.assign({}, this.headers, options.headers);
         options.method = options.method || 'GET';
         options.url = this.url + '/pingdom' + options.url;
 
-        return this.backendSrv.datasourceRequest(options);
+        const promise = this.backendSrv.datasourceRequest(options);
+        this.requestCache[cacheKey] = promise;
+
+        setTimeout(() => {
+            delete this.requestCache[cacheKey];
+        }, 60000);
+
+        return promise;
     }
 }

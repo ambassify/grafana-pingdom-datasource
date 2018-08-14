@@ -28,23 +28,32 @@ export class PingdomQueryCtrl extends QueryCtrl {
 
     onSegmentChange() {
         const value = this.segments.check.value || '';
-        const check = parseInt((/[0-9]+$/gi.exec(value + '') || [])[0], 10);
+        const check = /(\$.*)|([0-9]+$)/gi.exec(value + '') || [];
+
+        const checkId = check[1] || parseInt(check[2], 10);
         const checkName = value.replace(/:\s*\d+$/gi, '');
         const metric = this.segments.metric.value;
 
-        if (this.target.check == check && this.target.metric == metric)
+        if (this.target.check == checkId && this.target.metric == metric)
             return;
 
         if (!check || !metric)
             return;
 
         Object.assign(this.target, {
-            check,
+            check: checkId,
             checkName,
             metric
         });
 
         this.refresh();
+    }
+
+    getScopedVars() {
+        const vars = this.datasource.templateSrv.variables;
+
+        return vars.map(v => '$' + v.name)
+            .filter(v => !!v);
     }
 
     getMetricSegments(query = '') {
@@ -64,12 +73,18 @@ export class PingdomQueryCtrl extends QueryCtrl {
     }
 
     getCheckSegments(query = '') {
+        const vars = this.getScopedVars().map(k => ({
+            id: k,
+            value: k
+        }));
+
         return this.datasource.checkFindQuery(query)
             .then(checks => checks.map(c => ({
                 html: c.name,
                 id: c.id,
                 value: c.name + ': ' + c.id
             })))
+            .then(checks => vars.concat(checks))
             .then(checks => checks.map(check => {
                 const segment = this.uiSegmentSrv.newSegment(check);
 

@@ -47,21 +47,34 @@ var PingdomQueryCtrl = exports.PingdomQueryCtrl = function (_QueryCtrl) {
         key: 'onSegmentChange',
         value: function onSegmentChange() {
             var value = this.segments.check.value || '';
-            var check = parseInt((/[0-9]+$/gi.exec(value + '') || [])[0], 10);
+            var check = /(\$.*)|([0-9]+$)/gi.exec(value + '') || [];
+
+            var checkId = check[1] || parseInt(check[2], 10);
             var checkName = value.replace(/:\s*\d+$/gi, '');
             var metric = this.segments.metric.value;
 
-            if (this.target.check == check && this.target.metric == metric) return;
+            if (this.target.check == checkId && this.target.metric == metric) return;
 
             if (!check || !metric) return;
 
             Object.assign(this.target, {
-                check: check,
+                check: checkId,
                 checkName: checkName,
                 metric: metric
             });
 
             this.refresh();
+        }
+    }, {
+        key: 'getScopedVars',
+        value: function getScopedVars() {
+            var vars = this.datasource.templateSrv.variables;
+
+            return vars.map(function (v) {
+                return '$' + v.name;
+            }).filter(function (v) {
+                return !!v;
+            });
         }
     }, {
         key: 'getMetricSegments',
@@ -94,6 +107,13 @@ var PingdomQueryCtrl = exports.PingdomQueryCtrl = function (_QueryCtrl) {
 
             var query = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
 
+            var vars = this.getScopedVars().map(function (k) {
+                return {
+                    id: k,
+                    value: k
+                };
+            });
+
             return this.datasource.checkFindQuery(query).then(function (checks) {
                 return checks.map(function (c) {
                     return {
@@ -102,6 +122,8 @@ var PingdomQueryCtrl = exports.PingdomQueryCtrl = function (_QueryCtrl) {
                         value: c.name + ': ' + c.id
                     };
                 });
+            }).then(function (checks) {
+                return vars.concat(checks);
             }).then(function (checks) {
                 return checks.map(function (check) {
                     var segment = _this3.uiSegmentSrv.newSegment(check);
